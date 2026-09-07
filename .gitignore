@@ -1,0 +1,6 @@
+.env
+
+config.dev.yaml
+
+
+*.log

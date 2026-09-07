@@ -1,0 +1,127 @@
+# Application section
+app:
+  name: go-web-template
+  version: 0.0.1
+
+# Server section
+server:
+  # 启动地址
+  addr: ":8080"
+  # 运行模式
+  mode: "dev" # dev, release, test
+  # 读写超时时间
+  read-timeout: 5s
+  write-timeout: 10s
+
+# Database section dsn: mysql://username:password@tcp(localhost:port)/dbname?charset=utf8mb4&parseTime=True&loc=Local
+database:
+  dsn: mysql://username:password@tcp(localhost:port)/dbname?charset=utf8mb4&parseTime=True&loc=Local
+  prometheus: true
+  dbname: test
+  # 最大连接数
+  max-open-conns: 100
+  # 最大空闲连接数
+  max-idle-conns: 10
+
+  log-level: "info" # 生产环境建议 warn，开发环境用 info
+  # 连接最大生命周期
+  conn-max-lifetime: 1h
+  # 连接最大空闲时间
+  conn-max-idle-time: 30m
+
+  slow-threshold: 1000ms # 慢查询阈值
+  # 其他选项
+  # 表前缀
+  table-prefix: "t_"
+  # 是否使用单数表名
+  singular-table: false
+  # 是否启用预编译语句
+  prepare-stmt: true
+  # 是否跳过默认事务
+  skip-default-tx: false
+
+#jwt 配置信息
+jwt:
+  # 签名密钥（必须，建议使用环境变量注入，不要明文写在配置文件中）
+  signing-key: "" # env inject 生产环境请通过环境变量 JWT_SIGNING_KEY 覆盖
+  issuer: "shuns" # 签发者
+  expire-duration: 24h # 令牌有效期 24 小时
+  buffer-time: 30m # 缓冲时间 30 分钟（用于 token 自动刷新）
+  signing-method: "HS256" # 可选 HS256, HS384, HS512, RS256 等
+
+redis:
+  # addr: "127.0.0.1:6379"
+  addr: "redis:6379"
+  password: # 如果没有密码，留空或注释掉
+  db: 0
+  pool-size: 100 # 连接池大小，建议与业务并发数相当
+  min-idle-conns: 10 # 最小空闲连接数，保持一些连接预热
+  max-idle-conns: 100 # 最大空闲连接数，一般与 poolSize 相同
+  idle-timeout: 10m # 空闲连接超时，超过此时间会被关闭
+  dial-timeout: 5s # 连接超时
+  read-timeout: 3s # 读超时
+  write-timeout: 3s # 写超时
+  max-retries: 3 # 命令执行失败重试次数
+
+prometheus:
+  enabled: true # 是否启用 Prometheus 指标
+  port: 9090 # 指标端点独立端口（推荐）
+  path: "/metrics" # 指标暴露路径
+  namespace: "go-web-template" # 指标命名空间前缀
+
+cors:
+  # 允许的源，可以使用 "*" 允许所有，但生产环境建议指定具体域名
+  allow-origins:
+    - "http://localhost:3000"
+    - "http://localhost:5500"
+    - "http://localhost:5180"
+    - "http://localhost:5173"
+    - "http://127.0.0.1:5500"
+    - "http://127.0.0.1:5173"
+    - "https://myapp.example.com"
+    # TODO 环境变量注入域名
+  # 允许的 HTTP 方法
+  allow-methods:
+    - "GET"
+    - "POST"
+    - "PUT"
+    - "DELETE"
+    - "OPTIONS"
+  # 允许的请求头
+  allow-headers:
+    - "Content-Type"
+    - "Authorization"
+    - "X-Requested-With"
+  # 暴露给客户端的响应头
+  expose-headers:
+    - "Content-Length"
+    - "X-Total-Count"
+  # 是否允许携带凭证
+  allow-credentials: true
+  # 预检请求缓存时间（单位：秒，但配置中可使用 duration，如 12h）
+  max-age: 12h
+
+# 暂时采用硬编码模式
+# log:
+#   level: "info" # 日志级别，可选 debug, info, warn, error, dpanic, panic, fatal
+#   encoding: "json" # 开发环境用 console，生产环境建议用 json
+#   output-paths:
+#     - "stdout" # 同时输出到控制台和文件时，可写文件路径，如 "./logs/app.log"
+#     - "./logs/app.log"
+#   error-output-paths:
+#     - "stderr"
+#     - "./logs/err/app.err.log"
+#   # initial-fields: # 初始化字段，如：
+#   #   app: "go-web-template"
+#   #   version: "0.0.1"
+#   enable-sampling: false
+#   sampling:
+#     initial: 100
+#     thereafter: 100
+#   enable-rotate: true
+#   rotate-config:
+#     filename: "./logs/app.log"
+#     max-size: 100
+#     max-backups: 30
+#     max-age: 7
+#     compress: true

@@ -2,14 +2,15 @@ package config
 
 import "time"
 
-// JWTConfig JWT 配置
+// JWT configures the token parser in internal/auth. An empty signing key
+// disables the authentication demo routes.
 type JWT struct {
-	SigningKey     string        `mapstructure:"signing-key"`     // 签名密钥（必填）
-	Issuer         string        `mapstructure:"issuer"`          // 签发者
-	ExpireDuration time.Duration `mapstructure:"expire-duration"` // 过期时长（如 24h）
-	BufferTime     time.Duration `mapstructure:"buffer-time"`     // 缓冲时间（用于自动刷新）
-	SigningMethod  string        `mapstructure:"signing-method"`  // 签名方法，如 HS256、RS256
-	// 如果使用 RSA，可以增加私钥/公钥路径
-	PrivateKeyPath string `mapstructure:"private-key-path"` // RSA 私钥路径
-	PublicKeyPath  string `mapstructure:"public-key-path"`  // RSA 公钥路径
+	SigningKey     string        `mapstructure:"signing-key"`     // HS* secret; inject via APP_JWT_SIGNING_KEY in production
+	Issuer         string        `mapstructure:"issuer"`          // iss claim
+	ExpireDuration time.Duration `mapstructure:"expire-duration"` // e.g. 24h
+	BufferTime     time.Duration `mapstructure:"buffer-time"`     // refresh window (application-level)
+	SigningMethod  string        `mapstructure:"signing-method"`  // HS256, HS384, HS512, RS256
+
+	PrivateKeyPath string `mapstructure:"private-key-path"` // RS*: PEM private key
+	PublicKeyPath  string `mapstructure:"public-key-path"`  // RS*: PEM public key
 }

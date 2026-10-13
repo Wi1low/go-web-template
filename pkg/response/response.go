@@ -1,3 +1,4 @@
+// Package response provides the uniform JSON envelope used by all handlers.
 package response
 
 import (
@@ -6,16 +7,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Response 通用响应体
+// Response is the standard envelope. TraceID is filled from the request
+// context set by the RequestID middleware.
 type Response struct {
-	Code    int         `json:"code"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data,omitempty"`
-	TraceID string      `json:"trace_id,omitempty"`
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Data    any    `json:"data,omitempty"`
+	TraceID string `json:"trace_id,omitempty"`
 }
 
-// Success 成功响应
-func Success(c *gin.Context, data interface{}) {
+// Success writes 200 with data.
+func Success(c *gin.Context, data any) {
 	c.JSON(http.StatusOK, Response{
 		Code:    http.StatusOK,
 		Message: "success",
@@ -24,8 +26,11 @@ func Success(c *gin.Context, data interface{}) {
 	})
 }
 
-// Fail 失败响应
+// Fail writes an error envelope with the given HTTP status.
 func Fail(c *gin.Context, code int, message string) {
+	if message == "" {
+		message = http.StatusText(code)
+	}
 	c.JSON(code, Response{
 		Code:    code,
 		Message: message,
@@ -33,39 +38,19 @@ func Fail(c *gin.Context, code int, message string) {
 	})
 }
 
-// BadRequest 400错误
-func BadRequest(c *gin.Context, message string) {
-	Fail(c, http.StatusBadRequest, message)
-}
+// BadRequest writes a 400.
+func BadRequest(c *gin.Context, message string) { Fail(c, http.StatusBadRequest, message) }
 
-// Unauthorized 401错误
-func Unauthorized(c *gin.Context, message string) {
-	if message == "" {
-		message = "unauthorized"
-	}
-	Fail(c, http.StatusUnauthorized, message)
-}
+// Unauthorized writes a 401.
+func Unauthorized(c *gin.Context, message string) { Fail(c, http.StatusUnauthorized, message) }
 
-// Forbidden 403错误
-func Forbidden(c *gin.Context, message string) {
-	if message == "" {
-		message = "forbidden"
-	}
-	Fail(c, http.StatusForbidden, message)
-}
+// Forbidden writes a 403.
+func Forbidden(c *gin.Context, message string) { Fail(c, http.StatusForbidden, message) }
 
-// NotFound 404错误
-func NotFound(c *gin.Context, message string) {
-	if message == "" {
-		message = "not found"
-	}
-	Fail(c, http.StatusNotFound, message)
-}
+// NotFound writes a 404.
+func NotFound(c *gin.Context, message string) { Fail(c, http.StatusNotFound, message) }
 
-// InternalServerError 500错误
+// InternalServerError writes a 500.
 func InternalServerError(c *gin.Context, message string) {
-	if message == "" {
-		message = "internal server error"
-	}
 	Fail(c, http.StatusInternalServerError, message)
 }

@@ -1,0 +1,71 @@
+# Development configuration. Boots with zero infrastructure: flip
+# database.enabled / redis.enabled to true (or use docker compose) to run
+# against the demo stack. Any key can be overridden by APP_<SECTION>_<KEY>
+# environment variables, e.g. APP_DATABASE_DSN, APP_REDIS_ADDR.
+
+app:
+  name: go-web-template
+  version: 0.0.1
+
+server:
+  addr: ":8080"
+  mode: "dev" # dev | test | prod — drives logger format and gin mode
+  read-timeout: 5s
+  write-timeout: 10s
+  shutdown-timeout: 10s
+
+database:
+  enabled: false
+  driver: mysql
+  # go-sql-driver format: user:pass@tcp(host:port)/dbname?...
+  # Real credentials belong in .env (APP_DATABASE_DSN), not in this committed file.
+  dsn: "root:root@tcp(127.0.0.1:3306)/web_template?charset=utf8mb4&parseTime=True&loc=Local"
+  dbname: web_template
+  prometheus: true
+  max-open-conns: 100
+  max-idle-conns: 10
+  conn-max-lifetime: 1h
+  conn-max-idle-time: 30m
+  log-level: "info" # dev sees every query; use warn in prod
+  slow-threshold: 200ms
+  singular-table: true
+  prepare-stmt: true
+
+redis:
+  enabled: false
+  addr: "127.0.0.1:6379"
+  db: 0
+  pool-size: 100
+  min-idle-conns: 10
+  idle-timeout: 10m
+  dial-timeout: 5s
+  read-timeout: 3s
+  write-timeout: 3s
+  max-retries: 3
+
+jwt:
+  signing-key: "dev-only-secret-change-me" # override with APP_JWT_SIGNING_KEY
+  issuer: "go-web-template"
+  expire-duration: 24h
+  signing-method: "HS256"
+
+cors:
+  enabled: true
+  allow-origins:
+    - "http://localhost:3000"
+    - "http://localhost:5173"
+  allow-methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]
+  allow-headers: ["Origin", "Content-Length", "Content-Type", "Authorization", "X-Requested-With"]
+  expose-headers: ["Content-Length", "X-Total-Count"]
+  allow-credentials: false
+  max-age: 12h
+
+prometheus:
+  enabled: true
+  port: 9091 # admin port (9090 belongs to Prometheus server itself)
+  path: "/metrics"
+  namespace: "go_web_template" # metric prefix, e.g. go_web_template_http_requests_total
+
+swagger:
+  enabled: true
+  path: "/swagger/*any"

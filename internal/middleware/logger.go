@@ -7,43 +7,37 @@ import (
 	"go.uber.org/zap"
 )
 
-// ZapLogger 返回一个自定义的 Gin 中间件
+// ZapLogger logs one structured line per request, keyed by trace id. Level is
+// chosen by status so error logs stand out: >=500 error, >=400 warn, else info.
 func ZapLogger(logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 		path := c.Request.URL.Path
 		method := c.Request.Method
 
-		// 处理请求
 		c.Next()
 
-		// 请求结束后记录日志
-		latency := time.Since(start)
-		statusCode := c.Writer.Status()
-		clientIP := c.ClientIP()
-
-		logger.Info("Gin HTTP Request",
+		fields := []zap.Field{
+			zap.String("trace_id", TraceID(c)),
 			zap.String("method", method),
 			zap.String("path", path),
-			zap.Int("status", statusCode),
-			zap.String("ip", clientIP),
-			zap.Duration("latency", latency),
-			// 可以在此添加更多自定义字段
-			// zap.String("user_agent", c.Request.UserAgent()),
-		)
+			zap.Int("status", c.Writer.Status()),
+			zap.String("ip", c.ClientIP()),
+			zap.Duration("latency", time.Since(start)),
+			zap.String("user_agent", c.Request.UserAgent()),
+		}
+		if errs := c.Errors.ByType(gin.ErrorTypePrivate); len(errs) > 0 {
+			fields = append(fields, zap.String("errors", errs.String()))
+		}
+
+		status := c.Writer.Status()
+		switch {
+		case status >= 500:
+			logger.Error("http request", fields...)
+		case status >= 400:
+			logger.Warn("http request", fields...)
+		default:
+			logger.Info("http request", fields...)
+		}
 	}
-}
-
-func main() {
-	r := gin.New()
-	logger, _ := zap.NewProduction()
-	defer logger.Sync()
-
-	// 使用自定义中间件
-	r.Use(ZapLogger(logger))
-
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(200, gin.H{"message": "pong"})
-	})
-	r.Run(":8080")
 }

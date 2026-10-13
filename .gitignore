@@ -1,6 +1,9 @@
 # Secrets and local overrides — never committed.
 .env
 
+# Local change history — kept on this machine only.
+CHANGELOG.md
+
 # Build output and runtime artifacts.
 bin/
 logs/

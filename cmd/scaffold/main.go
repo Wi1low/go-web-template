@@ -37,6 +37,12 @@ var skipDirs = map[string]bool{
 	"cmd" + string(filepath.Separator) + "scaffold": true,
 }
 
+// Root files never copied into a new project: secrets and local history
+// belong to the template, not to the generated project.
+var skipFiles = map[string]bool{
+	".env": true, "CHANGELOG.md": true,
+}
+
 // Extensions (plus exact names) treated as text and rewritten. Everything
 // else is copied byte-for-byte.
 var textExt = map[string]bool{
@@ -102,7 +108,7 @@ func run(module, name, out, src string) error {
 			}
 			return os.MkdirAll(filepath.Join(absOut, rel), 0o755)
 		}
-		if rel == ".env" { // secrets never travel
+		if skipFiles[rel] { // secrets and local history never travel
 			return nil
 		}
 		if err := copyFile(filepath.Join(absOut, rel), path, module, name); err != nil {

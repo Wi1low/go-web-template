@@ -1,127 +1,98 @@
-# Application section
+# Full reference of every configuration key, with defaults in comments.
+# Copy sections into config.dev.yaml / config.prod.yaml; the loader already
+# seeds all of these as defaults (internal/config/load.go setDefaults), so a
+# config file only needs to state overrides.
+#
+# Override precedence (lowest → highest):
+#   built-in defaults < config.<APP_ENV>.yaml < .env < APP_* environment
+# Environment key pattern: APP_<SECTION>_<KEY-UPPER-UNDERSCORED>
+# e.g. database.conn-max-lifetime → APP_DATABASE_CONN_MAX_LIFETIME
+
 app:
   name: go-web-template
   version: 0.0.1
 
-# Server section
 server:
-  # 启动地址
   addr: ":8080"
-  # 运行模式
-  mode: "dev" # dev, release, test
-  # 读写超时时间
+  mode: "dev"            # dev | test | prod
   read-timeout: 5s
   write-timeout: 10s
+  shutdown-timeout: 10s  # graceful shutdown budget
 
-# Database section dsn: mysql://username:password@tcp(localhost:port)/dbname?charset=utf8mb4&parseTime=True&loc=Local
 database:
-  dsn: mysql://username:password@tcp(localhost:port)/dbname?charset=utf8mb4&parseTime=True&loc=Local
-  prometheus: true
-  dbname: test
-  # 最大连接数
+  enabled: false
+  driver: mysql          # add dialector cases in internal/module/database for postgres/sqlite
+  dsn: "user:pass@tcp(127.0.0.1:3306)/dbname?charset=utf8mb4&parseTime=True&loc=Local"
+  dbname: dbname         # label on gorm prometheus metrics
+  prometheus: true       # export dbstats gauges when metrics are enabled
   max-open-conns: 100
-  # 最大空闲连接数
   max-idle-conns: 10
-
-  log-level: "info" # 生产环境建议 warn，开发环境用 info
-  # 连接最大生命周期
   conn-max-lifetime: 1h
-  # 连接最大空闲时间
   conn-max-idle-time: 30m
-
-  slow-threshold: 1000ms # 慢查询阈值
-  # 其他选项
-  # 表前缀
-  table-prefix: "t_"
-  # 是否使用单数表名
-  singular-table: false
-  # 是否启用预编译语句
-  prepare-stmt: true
-  # 是否跳过默认事务
-  skip-default-tx: false
-
-#jwt 配置信息
-jwt:
-  # 签名密钥（必须，建议使用环境变量注入，不要明文写在配置文件中）
-  signing-key: "" # env inject 生产环境请通过环境变量 JWT_SIGNING_KEY 覆盖
-  issuer: "shuns" # 签发者
-  expire-duration: 24h # 令牌有效期 24 小时
-  buffer-time: 30m # 缓冲时间 30 分钟（用于 token 自动刷新）
-  signing-method: "HS256" # 可选 HS256, HS384, HS512, RS256 等
+  log-level: "warn"      # silent | error | warn | info
+  slow-threshold: 200ms
+  table-prefix: ""
+  singular-table: true
+  prepare-stmt: true     # cache prepared statements
+  skip-default-tx: false # drop gorm's per-write implicit transaction
 
 redis:
-  # addr: "127.0.0.1:6379"
-  addr: "redis:6379"
-  password: # 如果没有密码，留空或注释掉
+  enabled: false
+  addr: "127.0.0.1:6379"
+  password: ""
   db: 0
-  pool-size: 100 # 连接池大小，建议与业务并发数相当
-  min-idle-conns: 10 # 最小空闲连接数，保持一些连接预热
-  max-idle-conns: 100 # 最大空闲连接数，一般与 poolSize 相同
-  idle-timeout: 10m # 空闲连接超时，超过此时间会被关闭
-  dial-timeout: 5s # 连接超时
-  read-timeout: 3s # 读超时
-  write-timeout: 3s # 写超时
-  max-retries: 3 # 命令执行失败重试次数
+  pool-size: 100
+  min-idle-conns: 10
+  max-idle-conns: 100
+  idle-timeout: 10m
+  dial-timeout: 5s
+  read-timeout: 3s
+  write-timeout: 3s
+  max-retries: 3
+  # master-name: mymaster        # sentinel: switch to goredis.NewFailoverClient
+  # sentinel-addrs:              #   in internal/module/redis
+  #   - "127.0.0.1:26379"
+  # cluster-mode: false          # switch to goredis.NewClusterClient
 
-prometheus:
-  enabled: true # 是否启用 Prometheus 指标
-  port: 9090 # 指标端点独立端口（推荐）
-  path: "/metrics" # 指标暴露路径
-  namespace: "go-web-template" # 指标命名空间前缀
+jwt:
+  signing-key: ""        # REQUIRED for auth: inject APP_JWT_SIGNING_KEY
+  issuer: "go-web-template"
+  expire-duration: 24h
+  buffer-time: 30m       # refresh window (application-level)
+  signing-method: "HS256" # HS256/384/512 or RS256/384/512
+  # private-key-path: /etc/app/jwt.pem  # RS* only
+  # public-key-path: /etc/app/jwt.pub   # RS* only
 
 cors:
-  # 允许的源，可以使用 "*" 允许所有，但生产环境建议指定具体域名
-  allow-origins:
-    - "http://localhost:3000"
-    - "http://localhost:5500"
-    - "http://localhost:5180"
-    - "http://localhost:5173"
-    - "http://127.0.0.1:5500"
-    - "http://127.0.0.1:5173"
-    - "https://myapp.example.com"
-    # TODO 环境变量注入域名
-  # 允许的 HTTP 方法
-  allow-methods:
-    - "GET"
-    - "POST"
-    - "PUT"
-    - "DELETE"
-    - "OPTIONS"
-  # 允许的请求头
-  allow-headers:
-    - "Content-Type"
-    - "Authorization"
-    - "X-Requested-With"
-  # 暴露给客户端的响应头
-  expose-headers:
-    - "Content-Length"
-    - "X-Total-Count"
-  # 是否允许携带凭证
-  allow-credentials: true
-  # 预检请求缓存时间（单位：秒，但配置中可使用 duration，如 12h）
+  enabled: true
+  allow-origins: ["*"]         # lock down when allow-credentials: true
+  allow-methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]
+  allow-headers: ["Origin", "Content-Length", "Content-Type", "Authorization", "X-Requested-With"]
+  expose-headers: ["Content-Length", "X-Total-Count"]
+  allow-credentials: false
   max-age: 12h
 
-# 暂时采用硬编码模式
+prometheus:
+  enabled: true
+  port: 9091                   # admin port; never the app port
+  path: "/metrics"             # the ONLY metrics endpoint in this template
+  namespace: "go_web_template" # prefix for gin request metrics
+
+swagger:
+  enabled: true
+  path: "/swagger/*any"        # serve at /swagger/index.html
+
+# log: the zap encoder is chosen by server.mode (dev console, prod JSON +
+# rotating file under ./logs). This section is reserved for future per-key
+# tuning; the schema already exists in internal/config/logger.go.
 # log:
-#   level: "info" # 日志级别，可选 debug, info, warn, error, dpanic, panic, fatal
-#   encoding: "json" # 开发环境用 console，生产环境建议用 json
-#   output-paths:
-#     - "stdout" # 同时输出到控制台和文件时，可写文件路径，如 "./logs/app.log"
-#     - "./logs/app.log"
-#   error-output-paths:
-#     - "stderr"
-#     - "./logs/err/app.err.log"
-#   # initial-fields: # 初始化字段，如：
-#   #   app: "go-web-template"
-#   #   version: "0.0.1"
-#   enable-sampling: false
-#   sampling:
-#     initial: 100
-#     thereafter: 100
+#   level: "info"
+#   encoding: "json"
+#   output-paths: ["stdout", "./logs/app.log"]
 #   enable-rotate: true
 #   rotate-config:
 #     filename: "./logs/app.log"
 #     max-size: 100
-#     max-backups: 30
-#     max-age: 7
+#     max-backups: 5
+#     max-age: 30
 #     compress: true

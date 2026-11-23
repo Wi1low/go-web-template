@@ -1,0 +1,59 @@
+# Local development stack. The app service starts with components enabled via
+# APP_* environment variables — the same mechanism any deployment uses, so it
+# doubles as a living test of the BindEnv override layer.
+#
+#   docker compose up -d              # mysql + redis only (app stays commented)
+#   docker compose --profile app up   # full stack including the app
+#
+# Or run the app on the host against these services:
+#   docker compose up -d mysql redis
+#   APP_DATABASE_ENABLED=true APP_REDIS_ENABLED=true go run ./cmd/api
+
+services:
+  mysql:
+    image: mysql:8.0
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: web_template
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-proot"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    profiles: ["app"]
+    build: .
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      APP_ENV: dev
+      APP_DATABASE_ENABLED: "true"
+      APP_DATABASE_DSN: "root:root@tcp(mysql:3306)/web_template?charset=utf8mb4&parseTime=True&loc=Local"
+      APP_REDIS_ENABLED: "true"
+      APP_REDIS_ADDR: "redis:6379"
+      APP_JWT_SIGNING_KEY: "compose-dev-secret"
+    ports:
+      - "8080:8080"
+      - "9091:9091"
+
+volumes:
+  mysql-data:

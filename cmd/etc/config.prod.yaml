@@ -1,0 +1,65 @@
+# Production configuration. Secrets are never committed: rely on
+# APP_* environment variables (see .env.example / docker-compose).
+
+app:
+  name: go-web-template
+  version: 0.0.1
+
+server:
+  addr: ":8080"
+  mode: "prod" # JSON logs + gin release mode
+  read-timeout: 5s
+  write-timeout: 10s
+  shutdown-timeout: 15s
+
+database:
+  enabled: true
+  driver: mysql
+  dsn: "" # REQUIRED — inject APP_DATABASE_DSN
+  dbname: web_template
+  prometheus: true
+  max-open-conns: 200
+  max-idle-conns: 20
+  conn-max-lifetime: 1h
+  conn-max-idle-time: 30m
+  log-level: "warn"
+  slow-threshold: 500ms
+  singular-table: true
+  prepare-stmt: true
+
+redis:
+  enabled: true
+  addr: "" # REQUIRED — inject APP_REDIS_ADDR
+  db: 0
+  pool-size: 200
+  min-idle-conns: 20
+  idle-timeout: 10m
+  dial-timeout: 5s
+  read-timeout: 3s
+  write-timeout: 3s
+  max-retries: 3
+
+jwt:
+  signing-key: "" # REQUIRED — inject APP_JWT_SIGNING_KEY
+  issuer: "go-web-template"
+  expire-duration: 24h
+  signing-method: "HS256"
+
+cors:
+  enabled: true
+  allow-origins:
+    - "https://myapp.example.com" # lock down to real frontends
+  allow-methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]
+  allow-headers: ["Origin", "Content-Length", "Content-Type", "Authorization", "X-Requested-With"]
+  expose-headers: ["Content-Length", "X-Total-Count"]
+  allow-credentials: true
+  max-age: 12h
+
+prometheus:
+  enabled: true
+  port: 9091
+  path: "/metrics"
+  namespace: "go_web_template"
+
+swagger:
+  enabled: false # keep API docs out of production

@@ -1,6 +1,15 @@
+# Secrets and local overrides — never committed.
 .env
 
-config.dev.yaml
+# Local change history — kept on this machine only.
+CHANGELOG.md
 
-
+# Build output and runtime artifacts.
+bin/
+logs/
 *.log
+*.exe
+
+# OS noise.
+.DS_Store
+Thumbs.db
